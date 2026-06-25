@@ -1,33 +1,33 @@
-# Hibernate & JPA Fundamentals - Notes
+# Hibernate & JPA - Training Notes
 
 ## Learning Roadmap
 
 ```text
-1. Hibernate CRUD
-2. JPA CRUD
-3. Why JPA Exists
+1. Hibernate Native CRUD
+2. Why JPA?
+3. Migrating from Hibernate APIs to JPA APIs
 4. Entity Lifecycle States
 5. Persistence Context
-6. First Level Cache
+6. First-Level Cache
 7. Dirty Checking
 8. Repository Layer Basics
 ```
 
 ---
 
-# 1. Hibernate CRUD Operations
+# 1. Hibernate Native CRUD
 
-Hibernate provides the `Session` API to interact with the database.
+Hibernate provides its own native API to perform database operations.
 
 ## Hibernate Architecture
 
 ```text
 Application
-     |
- SessionFactory
-     |
+      |
+SessionFactory
+      |
    Session
-     |
+      |
  Database
 ```
 
@@ -49,6 +49,7 @@ SessionFactory sessionFactory =
 
 ```java
 Session session = sessionFactory.openSession();
+
 Transaction tx = session.beginTransaction();
 
 Employee employee = new Employee();
@@ -56,15 +57,19 @@ employee.setId(101);
 employee.setName("Vivek");
 employee.setSalary(50000);
 
-session.persist(employee);
+session.save(employee);
 
 tx.commit();
 session.close();
 ```
 
-### Purpose
+### Method Used
 
-Stores a new entity in the database.
+```java
+session.save(entity);
+```
+
+Saves a new entity into the database.
 
 ---
 
@@ -74,20 +79,20 @@ Stores a new entity in the database.
 Session session = sessionFactory.openSession();
 
 Employee employee =
-        session.get(Employee.class, 101);
+        session.get(Employee.class,101);
 
 System.out.println(employee);
 
 session.close();
 ```
 
-### Purpose
+### Method Used
 
-Retrieves an entity using its primary key.
+```java
+session.get(Employee.class,id);
+```
 
-### Note
-
-`session.get()` returns `null` when no record exists.
+Returns the entity if found, otherwise returns `null`.
 
 ---
 
@@ -95,24 +100,29 @@ Retrieves an entity using its primary key.
 
 ```java
 Session session = sessionFactory.openSession();
-Transaction tx = session.beginTransaction();
+
+Transaction tx =
+        session.beginTransaction();
 
 Employee employee =
-        session.get(Employee.class, 101);
+        session.get(Employee.class,101);
 
-employee.setSalary(70000);
+employee.setSalary(80000);
+
+session.update(employee);
 
 tx.commit();
+
 session.close();
 ```
 
-### Purpose
+### Method Used
+
+```java
+session.update(entity);
+```
 
 Updates an existing entity.
-
-### Observation
-
-No explicit update statement is required because Hibernate tracks changes made to managed entities.
 
 ---
 
@@ -120,177 +130,105 @@ No explicit update statement is required because Hibernate tracks changes made t
 
 ```java
 Session session = sessionFactory.openSession();
-Transaction tx = session.beginTransaction();
+
+Transaction tx =
+        session.beginTransaction();
 
 Employee employee =
-        session.get(Employee.class, 101);
+        session.get(Employee.class,101);
 
-session.remove(employee);
+session.delete(employee);
 
 tx.commit();
+
 session.close();
 ```
 
-### Purpose
+### Method Used
 
-Deletes an entity from the database.
+```java
+session.delete(entity);
+```
+
+Deletes the entity from the database.
 
 ---
 
-## Fetch All Records
+## Fetch All Employees
 
 ```java
 List<Employee> employees =
         session.createQuery(
                 "from Employee",
                 Employee.class)
-                .list();
+               .list();
 
 employees.forEach(System.out::println);
 ```
 
-### Note
-
-The query uses HQL (Hibernate Query Language).
+### HQL
 
 ```sql
 FROM Employee
 ```
 
-This is not SQL.
+HQL operates on Java entities rather than database tables.
 
-Hibernate converts HQL into SQL internally.
-
----
-
-# 2. JPA CRUD Operations
-
-JPA provides a standard API for persistence.
-
-Hibernate is one of the implementations of JPA.
+Hibernate automatically converts HQL into SQL.
 
 ---
 
-## JPA Architecture
+# 2. Why JPA?
+
+So far, the application depends directly on Hibernate APIs.
 
 ```text
 Application
-     |
-EntityManagerFactory
-     |
- EntityManager
-     |
+      |
+ Hibernate
+      |
  Database
 ```
 
----
-
-## Hibernate vs JPA
-
-| Hibernate      | JPA                  |
-| -------------- | -------------------- |
-| SessionFactory | EntityManagerFactory |
-| Session        | EntityManager        |
-| Transaction    | EntityTransaction    |
-| get()          | find()               |
-| persist()      | persist()            |
-| remove()       | remove()             |
-| createQuery()  | createQuery()        |
-
----
-
-## CREATE
+Examples:
 
 ```java
-EntityManager em =
-        emf.createEntityManager();
+session.save()
 
-em.getTransaction().begin();
+session.update()
 
-Employee employee = new Employee();
-employee.setId(201);
-employee.setName("Rahul");
+session.delete()
 
-em.persist(employee);
-
-em.getTransaction().commit();
-
-em.close();
+session.get()
 ```
+
+These APIs belong specifically to Hibernate.
+
+If an organization decides to switch to another ORM framework, application code must be modified.
+
+To solve this problem, Java introduced JPA.
 
 ---
 
-## READ
+## What is JPA?
 
-```java
-Employee employee =
-        em.find(Employee.class, 201);
-```
+JPA stands for **Java Persistence API**.
 
-Equivalent Hibernate API:
+It is a specification that defines a standard way to perform persistence operations.
 
-```java
-session.get(Employee.class, 201);
-```
-
----
-
-## UPDATE
-
-```java
-Employee employee =
-        em.find(Employee.class, 201);
-
-employee.setSalary(90000);
-
-em.getTransaction().commit();
-```
-
----
-
-## DELETE
-
-```java
-Employee employee =
-        em.find(Employee.class, 201);
-
-em.remove(employee);
-```
-
----
-
-## Fetch All Records
-
-```java
-List<Employee> employees =
-        em.createQuery(
-                "from Employee",
-                Employee.class)
-                .getResultList();
-```
-
----
-
-# 3. Why JPA Exists
-
-Hibernate is an ORM framework.
-
-JPA is a specification.
+Hibernate is one implementation of the JPA specification.
 
 ```text
-JPA -> Specification
-Hibernate -> Implementation
+Application
+      |
+      JPA
+      |
+--------------------------------
+|             |                |
+Hibernate   EclipseLink    OpenJPA
 ```
 
-JPA provides a standard way of working with persistence.
-
-Applications written using JPA APIs can switch between different implementations with minimal code changes.
-
-Examples of JPA implementations:
-
-* Hibernate
-* EclipseLink
-* OpenJPA
+Applications depend on JPA rather than a specific ORM implementation.
 
 ---
 
@@ -301,166 +239,293 @@ List<String> names =
         new ArrayList<>();
 ```
 
-Applications depend on the interface (`List`) rather than the implementation (`ArrayList`).
+Applications depend on the interface (`List`) instead of the implementation (`ArrayList`).
 
-Similarly:
+Similarly,
 
 ```text
-JPA -> Interface / Specification
+JPA
+↓
+Specification
 
-Hibernate -> Implementation
+Hibernate
+↓
+Implementation
 ```
+
+---
+
+# 3. Migrating from Hibernate APIs to JPA APIs
+
+Only the persistence API changes.
+
+The entity classes remain exactly the same.
+
+---
+
+## Hibernate
+
+```java
+Session session =
+        sessionFactory.openSession();
+```
+
+## JPA
+
+```java
+EntityManager em =
+        entityManagerFactory.createEntityManager();
+```
+
+---
+
+## CREATE
+
+### Hibernate
+
+```java
+session.save(employee);
+```
+
+### JPA
+
+```java
+em.persist(employee);
+```
+
+---
+
+## READ
+
+### Hibernate
+
+```java
+session.get(Employee.class,101);
+```
+
+### JPA
+
+```java
+em.find(Employee.class,101);
+```
+
+---
+
+## UPDATE
+
+### Hibernate
+
+```java
+session.update(employee);
+```
+
+### JPA
+
+```java
+em.merge(employee);
+```
+
+Later, it will be shown that `merge()` is not required when the entity is already managed by the Persistence Context.
+
+---
+
+## DELETE
+
+### Hibernate
+
+```java
+session.delete(employee);
+```
+
+### JPA
+
+```java
+em.remove(employee);
+```
+
+---
+
+## QUERY
+
+### Hibernate
+
+```java
+session.createQuery(...)
+```
+
+### JPA
+
+```java
+em.createQuery(...)
+```
+
+---
+
+## API Comparison
+
+| Operation | Hibernate     | JPA           |
+| --------- | ------------- | ------------- |
+| Create    | save()        | persist()     |
+| Read      | get()         | find()        |
+| Update    | update()      | merge()       |
+| Delete    | delete()      | remove()      |
+| Query     | createQuery() | createQuery() |
 
 ---
 
 # 4. Entity Lifecycle States
 
-Every entity moves through different states during its lifetime.
+Every entity passes through different lifecycle states.
 
 ```text
 Transient
-    |
-persist()
-    ↓
+      |
+save()/persist()
+      ↓
 Persistent
-    |
+      |
 Session Closed
-    ↓
+      ↓
 Detached
-    |
-remove()
-    ↓
+      |
+delete()/remove()
+      ↓
 Removed
 ```
 
 ---
 
-## Transient State
+## Transient
 
 ```java
 Employee employee = new Employee();
 ```
 
-Characteristics:
+Characteristics
 
-* Object exists only in memory
+* Exists only in memory
 * Not associated with Session
 * Not stored in the database
 
 ---
 
-## Persistent State
+## Persistent
 
 ```java
-session.persist(employee);
+session.save(employee);
 ```
 
-Characteristics:
+or
+
+```java
+em.persist(employee);
+```
+
+Characteristics
 
 * Managed by Hibernate
-* Stored in Persistence Context
-* Changes are tracked automatically
+* Stored inside Persistence Context
+* Hibernate monitors all changes
 
 ---
 
-## Detached State
+## Detached
 
 ```java
 session.close();
 ```
 
-Characteristics:
+Characteristics
 
 * Entity still exists
-* Session is closed
-* Hibernate no longer tracks changes
+* No longer managed
+* Changes are not synchronized automatically
 
 ---
 
-## Removed State
+## Removed
 
 ```java
-session.remove(employee);
+session.delete(employee);
 ```
 
-Characteristics:
+or
 
-* Entity is marked for deletion
-* Deleted when transaction commits
+```java
+em.remove(employee);
+```
+
+Entity is scheduled for deletion.
 
 ---
 
 # 5. Persistence Context
 
-Persistence Context is an in-memory storage area maintained by Hibernate/JPA.
+Persistence Context is an in-memory storage area that contains all managed entities.
 
-It contains all managed entities associated with the current Session or EntityManager.
+Every Session (Hibernate) or EntityManager (JPA) owns one Persistence Context.
 
 ```text
-Session
-    |
+Session / EntityManager
+           |
 Persistence Context
-    |
-Managed Entities
+           |
+ Managed Entities
 ```
 
-Example:
+Example
 
 ```java
 Employee employee =
-        session.get(Employee.class, 101);
+        session.get(Employee.class,101);
 ```
 
-After retrieval, the entity becomes managed and is stored inside the Persistence Context.
+After retrieval, the entity becomes managed.
 
 ---
 
-# 6. First Level Cache
+# 6. First-Level Cache
 
-Every Session contains a First Level Cache.
+Every Persistence Context maintains a First-Level Cache.
 
-The Persistence Context acts as the First Level Cache.
-
-Example:
+Example
 
 ```java
 Employee e1 =
-        session.get(Employee.class, 101);
+        session.get(Employee.class,101);
 
 Employee e2 =
-        session.get(Employee.class, 101);
+        session.get(Employee.class,101);
 ```
 
 Only one SQL query is executed.
 
-The second retrieval comes from the cache.
+The second object is returned directly from the cache.
 
 ---
 
-## SQL Logging
-
-Enable SQL logging:
+## Enable SQL Logging
 
 ```properties
 hibernate.show_sql=true
 ```
 
-This helps visualize when Hibernate accesses the database and when it uses the cache.
+This allows observation of the generated SQL statements.
 
 ---
 
 # 7. Dirty Checking
 
-Dirty Checking is Hibernate's mechanism for automatically detecting changes made to managed entities.
+Dirty Checking automatically detects modifications made to managed entities.
 
-Example:
+Example
 
 ```java
 Transaction tx =
         session.beginTransaction();
 
 Employee employee =
-        session.get(Employee.class, 101);
+        session.get(Employee.class,101);
 
 employee.setSalary(100000);
 
@@ -472,142 +537,116 @@ No explicit update statement is required.
 Hibernate compares:
 
 ```text
-Original State
-       vs
-Current State
+Original Entity
+        vs
+Modified Entity
 ```
 
-and automatically generates an UPDATE statement.
+and generates the SQL UPDATE statement automatically.
 
----
-
-## Benefits
-
-* Reduces boilerplate code
-* Simplifies update operations
-* Improves developer productivity
+This feature works because the entity is managed by the Persistence Context.
 
 ---
 
 # 8. Repository Layer Basics
 
-Direct database access from the Main class works for learning purposes, but it becomes difficult to maintain in larger applications.
+Writing all database operations inside the `Main` class is suitable for learning but not for production applications.
 
-The Repository Layer centralizes persistence logic.
+The Repository Layer separates persistence logic from business logic.
 
----
+Current structure
 
-## EmployeeRepository
+```text
+Main
+ |
+CRUD Logic
+ |
+Database
+```
+
+Improved structure
+
+```text
+Main
+ |
+EmployeeRepository
+ |
+Database
+```
+
+Example
 
 ```java
 public class EmployeeRepository {
-}
-```
 
----
+    public Employee findById(int id) {
+        ...
+    }
 
-## findById()
+    public List<Employee> findAll() {
+        ...
+    }
 
-```java
-public Employee findById(int id) {
+    public void save(Employee employee) {
+        ...
+    }
 
-    try(Session session =
-            HibernateUtil.getSessionFactory()
-                    .openSession()) {
+    public void update(Employee employee) {
+        ...
+    }
 
-        return session.get(
-                Employee.class,
-                id);
+    public void delete(Employee employee) {
+        ...
     }
 }
 ```
 
 ---
 
-## findAll()
-
-```java
-public List<Employee> findAll() {
-
-    try(Session session =
-            HibernateUtil.getSessionFactory()
-                    .openSession()) {
-
-        return session.createQuery(
-                "from Employee",
-                Employee.class)
-                .list();
-    }
-}
-```
-
----
-
-## save()
-
-```java
-public void save(Employee employee) {
-
-    try(Session session =
-            HibernateUtil.getSessionFactory()
-                    .openSession()) {
-
-        Transaction tx =
-                session.beginTransaction();
-
-        session.persist(employee);
-
-        tx.commit();
-    }
-}
-```
-
----
-
-# Hibernate vs JPA CRUD Methods
-
-| Operation | Hibernate                       | JPA                             |
-| --------- | ------------------------------- | ------------------------------- |
-| Create    | persist()                       | persist()                       |
-| Read      | get()                           | find()                          |
-| Update    | Managed Entity + Dirty Checking | Managed Entity + Dirty Checking |
-| Delete    | remove()                        | remove()                        |
-| Query     | createQuery()                   | createQuery()                   |
-
----
-
-# Key Concepts Summary
+# Key Takeaways
 
 ```text
 Hibernate
-    ↓
-Session
-    ↓
-Persistence Context
-    ↓
-First Level Cache
-    ↓
-Dirty Checking
-```
+    |
+Native APIs
 
-```text
+save()
+get()
+update()
+delete()
+
+↓
+
 JPA
-    ↓
-Specification
 
-Hibernate
-    ↓
-Implementation
+persist()
+find()
+merge()
+remove()
+
+↓
+
+Persistence Context
+
+↓
+
+First-Level Cache
+
+↓
+
+Dirty Checking
+
+↓
+
+Repository Pattern
 ```
 
-```text
-Entity Lifecycle
+## Hands-on Exercises
 
-Transient
-    ↓
-Persistent
-    ↓
-Detached
-    ↓
-Removed
-```
+1. Perform CRUD operations using Hibernate native APIs.
+2. Replace Hibernate APIs with JPA APIs while keeping the entity class unchanged.
+3. Compare `Session` and `EntityManager`.
+4. Observe generated SQL using `hibernate.show_sql=true`.
+5. Retrieve the same entity twice in the same Session and observe the First-Level Cache.
+6. Modify a managed entity without calling `update()` and observe Dirty Checking.
+7. Refactor CRUD operations from the `Main` class into an `EmployeeRepository`.
