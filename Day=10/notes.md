@@ -1,4 +1,4 @@
-# Spring Data JPA - Student Notes
+# Spring Data JPA -Notes
 
 # Learning Outcomes
 
