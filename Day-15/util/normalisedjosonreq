@@ -1,0 +1,42 @@
+[
+  {
+    "trainNumber": "12701",
+    "trainName": "Chennai Express",
+    "source": "Hyderabad",
+    "destination": "Chennai",
+    "departureTime": "2026-08-06T08:30:00",
+    "delayMinutes": 0,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 120,
+        "price": 650
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 40,
+        "price": 1450
+      }
+    ]
+  },
+  {
+    "trainNumber": "12702",
+    "trainName": "Bangalore Express",
+    "source": "Hyderabad",
+    "destination": "Bangalore",
+    "departureTime": "2026-08-06T10:15:00",
+    "delayMinutes": 15,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 95,
+        "price": 550
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 35,
+        "price": 1250
+      }
+    ]
+  }
+]
