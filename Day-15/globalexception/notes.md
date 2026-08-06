@@ -1,120 +1,188 @@
-# Global Exception Handling in Spring Boot
+# Global Exception Handling -- Detailed Student Notes
 
-## Student Notes (Train Service Project)
+## Train Service Project (Step-by-Step)
 
-> **Prerequisites** - Spring Boot - Spring Data JPA - REST APIs - Train
-> Service CRUD application
+> **Prerequisites**
+>
+> -   Spring Boot
+> -   REST APIs
+> -   Spring Data JPA
+> -   Existing Train Service CRUD Application
 
 ------------------------------------------------------------------------
 
-# Learning Objectives
+# Session Goal
 
 By the end of this session you will understand:
 
--   Why exception handling is required
--   Problems with controller-level try/catch
--   Local vs Global exception handling
--   `@ControllerAdvice`
--   `@ExceptionHandler`
--   Custom Exceptions
--   Standard Error Response
--   Integrating Global Exception Handling into the Train Service project
+-   What is an Exception?
+-   Why do we need Exception Handling?
+-   Why `try-catch` inside every controller is a bad idea?
+-   What is Global Exception Handling?
+-   What is `@ControllerAdvice`?
+-   What is `@ExceptionHandler`?
+-   How do we integrate it into our existing Train Service application?
 
 ------------------------------------------------------------------------
 
-# 1. Why do we need Exception Handling?
+# Step 1: Start with a Problem
 
-Imagine our Train Service exposes:
+Suppose our database contains:
 
-    GET /trains/1
+ID   Train Name
+  ---- -----------------
+1    Mumbai Express
+2    Chennai Express
 
-If Train 1 exists:
+Request:
 
-    200 OK
-
-If Train 100 doesn't exist and our service throws:
-
-``` java
-throw new RuntimeException("Train not found");
+``` http
+GET /trains/1
 ```
 
-Without handling, Spring returns a generic 500 response.
-
-That is not user friendly.
-
-Clients expect meaningful responses.
-
-Example:
+Response:
 
 ``` json
 {
-  "timestamp":"2026-08-06T09:30:00",
+  "id":1,
+  "trainName":"Mumbai Express"
+}
+```
+
+Everything works.
+
+Now call:
+
+``` http
+GET /trains/100
+```
+
+Question:
+
+> What should happen if Train 100 does not exist?
+
+------------------------------------------------------------------------
+
+# Step 2: Current Service Implementation
+
+``` java
+public Train getTrainById(Integer id) {
+    return trainRepository.findById(id).get();
+}
+```
+
+Flow:
+
+    Repository
+
+    ↓
+
+    findById(100)
+
+    ↓
+
+    Optional.empty()
+
+    ↓
+
+    .get()
+
+    ↓
+
+    NoSuchElementException
+
+Java throws an exception because there is no value inside the Optional.
+
+------------------------------------------------------------------------
+
+# Step 3: What does the client receive?
+
+Without handling the exception, Spring Boot returns a generic response.
+
+``` json
+{
+  "status":500,
+  "error":"Internal Server Error"
+}
+```
+
+Problems:
+
+-   Client doesn't know what went wrong.
+-   500 is misleading.
+-   The train simply wasn't found.
+
+A better response would be:
+
+``` json
+{
   "status":404,
-  "error":"Not Found",
   "message":"Train not found with id 100"
 }
 ```
 
 ------------------------------------------------------------------------
 
-# 2. The Wrong Way
+# Step 4: Beginner Solution
 
 Many beginners write:
 
 ``` java
 @GetMapping("/{id}")
 public Train getTrain(@PathVariable Integer id){
+
     try{
-        return trainService.getTrain(id);
+        return trainService.getTrainById(id);
     }catch(Exception e){
         throw e;
     }
 }
 ```
 
-Every controller repeats the same code.
+Looks fine for one API.
+
+But imagine:
+
+-   TrainController → 20 APIs
+-   BookingController → 15 APIs
+-   UserController → 25 APIs
+
+Every method contains repeated try-catch blocks.
 
 Problems:
 
 -   Duplicate code
--   Hard to maintain
--   Different error formats
+-   Difficult maintenance
+-   Different response formats
 
 ------------------------------------------------------------------------
 
-# 3. Better Idea
+# Step 5: Better Design
 
-Move exception handling to one central place.
+Instead of handling exceptions inside every controller, create one
+central place.
 
     Controller
-         |
+         │
     Service throws Exception
-         |
+         │
     Global Exception Handler
-         |
+         │
     Standard JSON Response
 
 This is called **Global Exception Handling**.
 
 ------------------------------------------------------------------------
 
-# 4. Key Annotations
+# Step 6: Create a Custom Exception
 
-## `@ControllerAdvice`
+Instead of:
 
-Marks a class that handles exceptions from all controllers.
+``` java
+throw new RuntimeException("Train not found");
+```
 
-## `@ExceptionHandler`
-
-Marks a method that handles a particular exception.
-
-------------------------------------------------------------------------
-
-# 5. Create a Custom Exception
-
-Package:
-
-    exception
+Create:
 
 ``` java
 package com.training.train_service.exception;
@@ -127,53 +195,153 @@ public class TrainNotFoundException extends RuntimeException {
 }
 ```
 
-Why custom exception?
+Benefits:
 
-Instead of:
-
-``` java
-throw new RuntimeException("Train not found");
-```
-
-Use:
-
-``` java
-throw new TrainNotFoundException("Train not found with id " + id);
-```
-
-Much clearer.
+-   Exception name clearly explains the problem.
+-   Easier debugging.
+-   Cleaner business logic.
 
 ------------------------------------------------------------------------
 
-# 6. Throw Exception from Service
+# Step 7: Throw Custom Exception
+
+Replace
 
 ``` java
-public Train getTrainById(Integer id){
-
-    return trainRepository.findById(id)
-            .orElseThrow(() ->
-                new TrainNotFoundException(
-                    "Train not found with id " + id));
-}
+return trainRepository.findById(id).get();
 ```
+
+with
+
+``` java
+return trainRepository.findById(id)
+        .orElseThrow(() ->
+            new TrainNotFoundException(
+                "Train not found with id " + id));
+```
+
+Flow:
+
+    Repository
+
+    ↓
+
+    Train Found?
+
+    ↓
+
+    No
+
+    ↓
+
+    Throw TrainNotFoundException
 
 Notice:
 
-Controller stays clean.
-
-Service contains business logic.
+The service does **not** catch the exception.
 
 ------------------------------------------------------------------------
 
-# 7. Error Response Model
+# Step 8: Exception Propagation
+
+Question:
+
+Who catches this exception?
+
+Answer:
+
+Nobody in the Service or Controller.
+
+It propagates upward.
+
+    Repository
+
+    ↓
+
+    Service
+
+    ↓
+
+    Controller
+
+    ↓
+
+    Spring Framework
+
+    ↓
+
+    Global Exception Handler
+
+------------------------------------------------------------------------
+
+# Step 9: Introduce @ControllerAdvice
 
 Create:
 
 ``` java
-package com.training.train_service.exception;
+@ControllerAdvice
+public class GlobalExceptionHandler {
 
-import java.time.LocalDateTime;
+}
+```
 
+Meaning:
+
+> This class handles exceptions thrown by all controllers.
+
+Think of it as:
+
+-   `@RestController` → Handles Requests
+-   `@ControllerAdvice` → Handles Exceptions
+
+------------------------------------------------------------------------
+
+# Step 10: Handle TrainNotFoundException
+
+``` java
+@ExceptionHandler(TrainNotFoundException.class)
+public ResponseEntity<String> handleTrainNotFound(
+        TrainNotFoundException ex){
+
+    return new ResponseEntity<>(
+            ex.getMessage(),
+            HttpStatus.NOT_FOUND);
+}
+```
+
+Read this in English:
+
+"If TrainNotFoundException occurs anywhere, call this method."
+
+Spring calls it automatically.
+
+------------------------------------------------------------------------
+
+# Step 11: Improve the Response
+
+Returning plain text isn't ideal.
+
+Instead return a standard object.
+
+Example:
+
+``` json
+{
+  "timestamp":"2026-08-06T10:00:00",
+  "status":404,
+  "error":"Not Found",
+  "message":"Train not found with id 100",
+  "path":"/trains/100"
+}
+```
+
+Professional APIs follow a consistent error format.
+
+------------------------------------------------------------------------
+
+# Step 12: ErrorResponse Class
+
+``` java
 public class ErrorResponse {
 
     private LocalDateTime timestamp;
@@ -182,41 +350,19 @@ public class ErrorResponse {
     private String message;
     private String path;
 
-    // constructors
-    // getters
-    // setters
 }
 ```
 
-Why?
+Think of it like:
 
-Every API should return the same structure.
-
-Example:
-
-``` json
-{
-  "timestamp":"2026-08-06T09:45:00",
-  "status":404,
-  "error":"Not Found",
-  "message":"Train not found with id 5",
-  "path":"/trains/5"
-}
-```
+-   `Train` stores Train information.
+-   `ErrorResponse` stores Error information.
 
 ------------------------------------------------------------------------
 
-# 8. Global Exception Handler
+# Step 13: Complete GlobalExceptionHandler
 
 ``` java
-package com.training.train_service.exception;
-
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -240,148 +386,81 @@ public class GlobalExceptionHandler {
 
 ------------------------------------------------------------------------
 
-# 9. Flow
+# Step 14: Complete Flow
 
     GET /trains/100
-          |
+
+    ↓
+
     Controller
-          |
+
+    ↓
+
     Service
-          |
-    TrainNotFoundException
-          |
-    @ControllerAdvice
-          |
-    404 Response
 
-------------------------------------------------------------------------
+    ↓
 
-# 10. Handle Validation Errors
+    Repository
 
-If using `@Valid`:
+    ↓
 
-``` java
-@PostMapping
-public Train save(@Valid @RequestBody Train train){
-    return trainService.save(train);
-}
-```
+    Train Missing
 
-Handle:
-
-``` java
-@ExceptionHandler(MethodArgumentNotValidException.class)
-public ResponseEntity<ErrorResponse> handleValidation(...){
-    ...
-}
-```
-
-Return:
-
-``` json
-{
-  "status":400,
-  "message":"Validation Failed"
-}
-```
-
-------------------------------------------------------------------------
-
-# 11. Handle Generic Exceptions
-
-Always keep a fallback.
-
-``` java
-@ExceptionHandler(Exception.class)
-public ResponseEntity<ErrorResponse> handleException(...){
-    ...
-}
-```
-
-Return HTTP 500.
-
-------------------------------------------------------------------------
-
-# 12. Project Structure
-
-    train-service
-    |
-    +-- controller
-    +-- service
-    +-- repository
-    +-- model
-    +-- exception
-        |
-        +-- ErrorResponse
-        +-- TrainNotFoundException
-        +-- GlobalExceptionHandler
-
-------------------------------------------------------------------------
-
-# 13. End-to-End Example
-
-Request
-
-    GET /trains/999
-
-Service
-
-    Repository returns Empty
-
-↓
+    ↓
 
     Throw TrainNotFoundException
 
-↓
+    ↓
 
-    GlobalExceptionHandler catches it
+    @ControllerAdvice
 
-↓
+    ↓
 
-Response
+    @ExceptionHandler
 
-``` json
-{
-  "timestamp":"2026-08-06T10:00:00",
-  "status":404,
-  "error":"Not Found",
-  "message":"Train not found with id 999",
-  "path":"/trains/999"
-}
-```
+    ↓
+
+    ErrorResponse
+
+    ↓
+
+    404 JSON Response
+
+    ↓
+
+    Client
 
 ------------------------------------------------------------------------
 
 # Best Practices
 
--   Create custom exceptions for business scenarios.
--   Never return stack traces to clients.
--   Use proper HTTP status codes.
--   Keep controllers free from try/catch.
--   Return a consistent error response.
--   Add a generic exception handler as a safety net.
+-   Create meaningful custom exceptions.
+-   Keep controllers free from try-catch blocks.
+-   Handle exceptions in one place.
+-   Return proper HTTP status codes.
+-   Always return a consistent error response.
 
 ------------------------------------------------------------------------
 
 # Classroom Exercise
 
-1.  Create `TrainNotFoundException`.
-2.  Throw it from `getTrainById()`.
+1.  Create `TrainNotFoundException`
+2.  Throw it from the Service layer.
 3.  Create `ErrorResponse`.
-4.  Implement `GlobalExceptionHandler`.
-5.  Verify:
-    -   Existing train → 200
-    -   Missing train → 404
-    -   Invalid request → 400
-    -   Unexpected error → 500
+4.  Create `GlobalExceptionHandler`.
+5.  Test:
+    -   Existing Train → 200
+    -   Missing Train → 404
+    -   Invalid Request → 400 (later with Validation)
+    -   Unexpected Error → 500
 
 ------------------------------------------------------------------------
 
 # Summary
 
--   Exceptions are inevitable.
--   Controllers should not contain repetitive try/catch.
+-   Exceptions are part of every application.
+-   Avoid repetitive try-catch in controllers.
+-   Use custom exceptions to represent business errors.
 -   `@ControllerAdvice` centralizes exception handling.
--   `@ExceptionHandler` maps exceptions to HTTP responses.
--   Custom exceptions make code expressive.
--   Standard error responses make APIs consistent and production-ready.
+-   `@ExceptionHandler` maps exceptions to appropriate HTTP responses.
+-   `ErrorResponse` gives clients a consistent API response format.
