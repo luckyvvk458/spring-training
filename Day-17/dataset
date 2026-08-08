@@ -1,0 +1,173 @@
+[
+  {
+    "trainName": "Chennai Express",
+    "source": "Hyderabad",
+    "destination": "Chennai",
+    "departureTime": "2026-08-06T08:30:00",
+    "delayMinutes": 0,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 118,
+        "price": 680
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 42,
+        "price": 1580
+      }
+    ]
+  },
+  {
+    "trainName": "Bangalore Express",
+    "source": "Hyderabad",
+    "destination": "Bangalore",
+    "departureTime": "2026-08-06T10:15:00",
+    "delayMinutes": 15,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 95,
+        "price": 600
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 36,
+        "price": 1400
+      }
+    ]
+  },
+  {
+    "trainName": "Hyderabad Express",
+    "source": "Nagpur",
+    "destination": "Hyderabad",
+    "departureTime": "2026-08-06T12:45:00",
+    "delayMinutes": 5,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 120,
+        "price": 600
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 48,
+        "price": 1180
+      }
+    ]
+  },
+  {
+    "trainName": "Trivandrum Express",
+    "source": "Chennai",
+    "destination": "Trivandrum",
+    "departureTime": "2026-08-06T14:30:00",
+    "delayMinutes": 0,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 80,
+        "price": 900
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 30,
+        "price": 1820
+      }
+    ]
+  },
+  {
+    "trainName": "Delhi Express",
+    "source": "Hyderabad",
+    "destination": "Delhi",
+    "departureTime": "2026-08-06T16:00:00",
+    "delayMinutes": 20,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 65,
+        "price": 1300
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 22,
+        "price": 2650
+      }
+    ]
+  },
+  {
+    "trainName": "Mumbai Express",
+    "source": "Hyderabad",
+    "destination": "Mumbai",
+    "departureTime": "2026-08-06T18:45:00",
+    "delayMinutes": 10,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 100,
+        "price": 780
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 44,
+        "price": 1680
+      }
+    ]
+  },
+  {
+    "trainName": "Pune Express",
+    "source": "Hyderabad",
+    "destination": "Pune",
+    "departureTime": "2026-08-06T20:15:00",
+    "delayMinutes": 0,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 92,
+        "price": 560
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 34,
+        "price": 1180
+      }
+    ]
+  },
+  {
+    "trainName": "Goa Express",
+    "source": "Hyderabad",
+    "destination": "Goa",
+    "departureTime": "2026-08-06T09:10:00",
+    "delayMinutes": 40,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 110,
+        "price": 600
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 48,
+        "price": 1180
+      }
+    ]
+  },
+  {
+    "trainName": "Jaipur Express",
+    "source": "Hyderabad",
+    "destination": "Jaipur",
+    "departureTime": "2026-08-06T20:50:00",
+    "delayMinutes": 20,
+    "coaches": [
+      {
+        "coachType": "SLEEPER",
+        "availableSeats": 120,
+        "price": 600
+      },
+      {
+        "coachType": "AC",
+        "availableSeats": 48,
+        "price": 1180
+      }
+    ]
+  }
+]
